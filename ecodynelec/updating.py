@@ -17,6 +17,7 @@ import pandas as pd
 from ecodynelec.preprocessing.auxiliary import get_default_file, read_ofen_pdf_file
 from ecodynelec.preprocessing.enr_residual_utils import get_enr_data_from_pronovo_ec
 from ecodynelec.preprocessing.loading import adjust_generation, import_generation
+from ecodynelec.preprocessing.sfoe_extracting import updating_ofen_data
 
 
 def update_all(path_dir=None, path_swissGrid=None, is_verbose=False):
@@ -58,7 +59,8 @@ def update_all(path_dir=None, path_swissGrid=None, is_verbose=False):
     update_neighbours(os.path.join(path_dir, "Neighbourhood_EU.csv"))
     if is_verbose: print(f"Updated Neighbourhood file")
     update_UIVector(os.path.join(path_dir, "Unit_Impact_Vector.csv"))
-    if is_verbose: print(f"Updated UI vector file")
+    if is_verbose: print(f"Updated UI cector file")
+    update_SFOE(os.path.join(path_dir, "ofen_data"))
     update_Losses(os.path.join(path_dir, "SFOE_data.csv"))
     if is_verbose: print(f"Updated Losses file")
     update_residual_share(os.path.join(path_dir, "Residual_model.xlsx"), save=True)
@@ -109,8 +111,26 @@ def update_UIVector(path):
     update_copy(path, "Unit_Impact_Vector.csv")
 
 
+def update_SFOE(path):
+    DF = []
+    keys = ['annee', 'mois']
+    for file in os.listdir(path):
+        if "2023" in file:
+            continue  # skip 2023
+
+        if not file.lower().endswith(".pdf"):
+            continue
+        pdf_path = os.path.join(path, file)
+        DF.append(updating_ofen_data(pdf_path))
+    df = DF[0].merge(DF[1][keys].drop_duplicates(), on=keys, how="left", indicator=True) \
+        .query("_merge == 'left_only'") \
+        .drop(columns="_merge")
+    df_all = pd.concat([df, DF[1]], ignore_index=True)
+    df_all.to_csv(os.path.join(os.path.dirname(path), 'SFOE_data.csv'), index=False, encoding="utf-8")
+
+
 def update_Losses(path):
-    update_copy(path, "Pertes_OFEN.csv")
+    update_copy(path, "SFOE_data.csv")
 
 
 def update_residual_share(path, save=True):
@@ -122,8 +142,9 @@ def update_residual_share(path, save=True):
     interest = {'Centrales au fil de l’eau': "Hydro_Run-of-river_and_poundage_Res",
                 'Centrales à accumulation': "Hydro_Water_Reservoir_Res",
                 'Centrales therm. classiques et renouvelables': "Other_Res"}
-    df = pd.read_excel(path, header=59, index_col=0).loc[interest.keys()].rename(index=interest)
+    df = pd.read_excel(path, header=60, index_col=0).loc[interest.keys()].rename(index=interest)
     df = df.T
+    df.index = pd.to_datetime(df.index, dayfirst=True, errors='coerce')
 
     ### Saving
     if save:
@@ -201,7 +222,7 @@ def extract_entsoe_daily_generation_for_residuals(config, path_dir=None, n_hours
                                            limit=limit,
                                            clean_generation=False, is_verbose=is_verbose)  # import generation data
     generation_per_day = adjust_generation(generation_per_day, freq=freq, residual_global=False, sg_data=None,
-                                           prod_gap=None, enr_prod_ch=None,
+                                           path_gap=None, enr_prod_ch=None,
                                            is_verbose=is_verbose)  # adjust the generation data
     ### And save it
     if save:
@@ -461,7 +482,7 @@ def update_enr_data_from_pronovo(path_dir=None, output_file=None, verbose=False)
     ndf = pd.concat([predicted_data.loc[:(mapped_data.index[0] - timedelta(hours=1))], mapped_data], axis=0)
     ndf.fillna(0, inplace=True)
     if output_file is None:
-        output_file = os.path.join(path_dir, 'enr_prod_2016-2022_completed.csv')
+        output_file = os.path.join(path_dir, 'enr_prod_2016-2024_completed.csv')
     if verbose:
         print(f"Saving {output_file}...")
     ndf.to_csv(output_file)

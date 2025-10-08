@@ -61,7 +61,7 @@ def generate_data(config, years: list[str], savedir: str = './mix_analysis/resul
         if show_progress:
             progress_info_year.progress('Compute ' + year + '...', 0)
         config.start = year + '-01-01 00:00'
-        config.end = year + '-12-31 23:59'
+        config.end = year + '-12-31 23:45'
         config.path.savedir = savedir + year + "/"
         raw, prod, mix, prodimp, imp = get_prod_mix_impacts(config=config, is_verbose=is_verbose,
                                                             progress_bar=progress_info_computation)

@@ -17,6 +17,8 @@ The submodule `residual <https://ecodynelec.readthedocs.io/en/latest/modules/pre
 
 The submodule `enr_residual_utils <https://ecodynelec.readthedocs.io/en/latest/modules/preprocessing.enr_residual_utils.html>`_ contains functions used to read the Pronovo and EnergyCharts data used to complete the renewable production (solar, wind, waste...) and eliminate the residual.
 
+The submodule `sfoe_extracting <https://ecodynelec.readthedocs.io/en/latest/modules/preprocessing.sfoe_extracting.html>`_ contains functions used to extract SFOE data and update SFOE_data.csv.
+
 .. toctree::
    :maxdepth: 1
    :hidden:
@@ -29,3 +31,4 @@ The submodule `enr_residual_utils <https://ecodynelec.readthedocs.io/en/latest/m
    preprocessing.extracting
    preprocessing.residual
    preprocessing.enr_residual_utils
+   preprocessing.sfoe_extracting
