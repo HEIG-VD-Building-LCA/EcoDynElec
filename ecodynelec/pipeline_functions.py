@@ -111,7 +111,7 @@ def load_raw_prod_exchanges(parameters: Parameter | str, is_verbose: bool = Fals
             None)  # Translate to Europe/Zurich timezone then remove tz info (for comparison with data source files)
         sg_data = aux.load_swissGrid(path_sg=p.path.swissGrid, start=str(range[0]), end=str(range[-1]), freq='15min')
         # Shift the SwissGrid data index back by one hour to convert from Etc/GMT+1 to UTC
-        sg_data.index = sg_data.index - pd.Timedelta(hours=1)
+        sg_data.index = pd.date_range(start=p.start, end=p.end, freq="15min")
         # Resample the SwissGrid data to the desired frequency, after the time zone conversion
         sg_data = sg_data.resample(p.freq).sum()
     else:
