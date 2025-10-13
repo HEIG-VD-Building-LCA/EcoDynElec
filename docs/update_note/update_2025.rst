@@ -168,3 +168,20 @@ To update the ``Residual_model.xlsx`` file:
    It will automatically export the updated data from ``Residual_model.xlsx``
    into ``Share_residual.csv``.
 
+----
+
+Timezone alignment and end-of-year gap
+--------------------------------------
+
+The **Swissgrid**, **Pronovo**, and **Energy Charts** datasets are originally provided in **GMT+1**
+(local time, without explicit timezone information). To ensure consistency and interoperability
+across all sources, these time series are systematically converted to **UTC**.
+
+However, this alignment introduces a one-hour forward shift in the timestamps. Unless the data
+extends slightly beyond December 31st (e.g., into January 1st of the following year), this
+shift creates a missing hour at the very end of the last year (from 31/12 23:45 to 01/01 00:45 in UTC).
+
+This gap does not impact the functioning of the application. Nevertheless, starting from the 2025
+update, a few additional data points from early **2025** have been downloaded and integrated into
+the processing pipeline for **Swissgrid**, **Pronovo**, and **Energy Charts**, ensuring complete
+yearly coverage.
