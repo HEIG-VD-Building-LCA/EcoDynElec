@@ -18,7 +18,7 @@ Download the ``.xlsx`` or ``.xls`` files for **all available years** (e.g., 2016
 **Update:**
 The data update is performed by executing the ``update_all`` function located in ``ecodynelec/update.py``.
 
-⚠️ **Important:** you must **specify the path** to the folder containing **all yearly files** (every downloaded year).
+**Important:** you must **specify the path** to the folder containing **all yearly files** (every downloaded year).
 The module will not work properly if one or more yearly files are missing.
 
 **Expected folder structure:**
