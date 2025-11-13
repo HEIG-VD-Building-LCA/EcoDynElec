@@ -290,6 +290,8 @@ def adjust_generation(Gen, freq='h', residual_global=False, start=None, end=None
     if enr_prod_ch is not None:
         # Check the availability of enr production data
         check_residual_availability(prod=Gen['CH'], residual=enr_prod_ch, freq=freq)
+        if start.year < 2023:
+            enr_prod_ch = enr_prod_ch.drop(columns=['Hydro_Pumped_Storage_CH', 'Hydro_Pumpage_CH']) # Using ENTSO-E data for 2023 and under
         # And include it
         Gen['CH'].loc[:, enr_prod_ch.columns] = enr_prod_ch
 
