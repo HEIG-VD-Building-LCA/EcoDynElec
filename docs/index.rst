@@ -103,6 +103,7 @@ P.Padey et al., 2020, 'Dynamic Life Cycle Assessment of the building electricity
     structure/load_impacts
     structure/tracking
     structure/impacts
+    structure/dynamic_storage
     structure/local_residual
 
 .. toctree::
@@ -126,6 +127,7 @@ P.Padey et al., 2020, 'Dynamic Life Cycle Assessment of the building electricity
     modules/pipeline_functions
     modules/parameter
     modules/impacts
+    modules/dynamic_impact
     modules/tracking
     modules/preprocessing
     modules/saving
