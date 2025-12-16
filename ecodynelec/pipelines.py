@@ -14,6 +14,7 @@ from ecodynelec.checking import check_mapping
 ####### Local modules
 from ecodynelec.pipeline_functions import load_config, check_download, load_raw_prod_exchanges, get_mix, get_impacts, \
     translate_to_timezone, save_results, load_impact_matrix, get_flows_kwh
+from ecodynelec.dynamic_impact import dynamic_impact
 from ecodynelec.progress_info import ProgressInfo
 
 
@@ -133,7 +134,7 @@ def execute(config, missing_mapping='error', is_verbose=False, progress_bar: Pro
 # ######################################
 # -
 
-def get_prod_mix_impacts(config, missing_mapping='error', is_verbose=False, progress_bar: ProgressInfo = None):
+def get_prod_mix_impacts(config, step_imp_memory, missing_mapping='error', is_verbose=False, progress_bar: ProgressInfo = None):
     """Executes the whole computation process, i.e. (1) downloads required data;
     (2) load auxiliary data; (3) load and correct Entso-E data; (4) compute the
     electricity tracking; (5) computes the environmental impacts; (6) save and return.
@@ -148,6 +149,8 @@ def get_prod_mix_impacts(config, missing_mapping='error', is_verbose=False, prog
         config: ecodynelec.Parameter or str
             a set of configration parameters to govern the computation,
             either as Parameter object or str pointing at a xlsx file.
+        step_imp_memory: dict
+            dictionnary containing the last STEP impact of the last year
         missing_mapping: str, default to 'error'
             strategy for handling producing units with not mapping.
             'error' (default) raises an error, 'worst' takes the highest impact value in
@@ -178,6 +181,7 @@ def get_prod_mix_impacts(config, missing_mapping='error', is_verbose=False, prog
         imp_dict: dict of pd.DataFrame or dict of dict of pd.DataFrame
             A collection of tables containing the dynamic impacts of 1kWh of consumed electricity in the target country.
             Note if there are multiple target countries, the data is returned in a dict of each target's impacts.
+        step_imp_memory: dict containing the last STEP impact of the last year
     """
 
     if progress_bar:
@@ -225,7 +229,11 @@ def get_prod_mix_impacts(config, missing_mapping='error', is_verbose=False, prog
         progress_bar.progress('Compute impacts...')
     prod_imp_dict = get_impacts(prod_mix_dict, impact_matrix, missing_mapping, is_verbose=is_verbose)
     imp_dict = get_impacts(mix_dict, impact_matrix, missing_mapping, is_verbose=is_verbose)
-
+    if p.start.year >= 2023:
+        if p.dynamic_impact:
+            prod_imp_dict, imp_dict, step_imp = dynamic_impact(prod_imp_dict, imp_dict, raw_prodExch, prod_mix_dict,
+                                                    mix_dict, impact_matrix, step_imp_memory, p, is_verbose=is_verbose)
+            step_imp_memory[p.start.year] = step_imp
     ##########################
     ####### COMPUTE MIX IN kWh
     #######
@@ -263,8 +271,8 @@ def get_prod_mix_impacts(config, missing_mapping='error', is_verbose=False, prog
         progress_bar.progress('Done.')
     if is_verbose: print("done.")
     if n_target == 1:
-        return flows_dict[p.target[0]], prod_mix_dict[p.target[0]], mix_dict[p.target[0]], prod_imp_dict[p.target[0]], imp_dict[p.target[0]]
-    return flows_dict, prod_mix_dict, mix_dict, prod_imp_dict, imp_dict
+        return flows_dict[p.target[0]], prod_mix_dict[p.target[0]], mix_dict[p.target[0]], prod_imp_dict[p.target[0]], imp_dict[p.target[0]], step_imp_memory
+    return flows_dict, prod_mix_dict, mix_dict, prod_imp_dict, imp_dict, step_imp_memory
 
 
 ########################################

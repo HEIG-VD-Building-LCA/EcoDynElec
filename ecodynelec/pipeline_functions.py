@@ -17,6 +17,7 @@ import os.path
 
 import numpy as np
 import pandas as pd
+from pandas import DataFrame
 
 from ecodynelec import saving
 from ecodynelec.impacts import compute_impacts

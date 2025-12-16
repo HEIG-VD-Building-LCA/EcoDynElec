@@ -116,7 +116,7 @@ def import_data(ctry, start=None, end=None, freq="H", involved_countries=None, p
     Cross = import_exchanges(ctry=ctry, start=start, end=end, savedir=savedir,
                              n_hours=n_hours, days_around=days_around, limit=limit, clean_imports=clean_data,
                              path_imp=path_imp, path_prep=imp_preprocessed, freq=freq, is_verbose=is_verbose,
-                             progress_bar=progress_bar)  # Imprt data
+                             progress_bar=progress_bar)  # Import data
     if progress_bar:
         progress_bar.progress('Adjust exchanges data...')
     Cross = adjust_exchanges(Cross=Cross, neighbourhood=involved_countries, net_exchange=net_exchange, freq=freq,
