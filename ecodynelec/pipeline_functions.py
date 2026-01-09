@@ -25,7 +25,7 @@ from ecodynelec.parameter import Parameter
 from ecodynelec.preprocessing import auxiliary as aux
 from ecodynelec.preprocessing.auxiliary import load_ch_enr_model
 from ecodynelec.preprocessing.downloading import download
-from ecodynelec.preprocessing.load_impacts import extract_mapping, extract_UI
+from ecodynelec.preprocessing.load_impacts import extract_mapping, extract_UI, extract_network_mapping
 from ecodynelec.preprocessing.loading import import_data
 from ecodynelec.progress_info import ProgressInfo
 from ecodynelec.tracking import track_mix
@@ -171,10 +171,38 @@ def load_impact_matrix(parameters: Parameter, is_verbose: bool = False) -> pd.Da
                                         residual=parameters.residual_global,
                                         target=parameters.target, is_verbose=is_verbose)
     else:  # If no mapping specified, go for the UI vector: it can grab the default vector automatically
-        impact_matrix = extract_UI(path_ui=parameters.path.ui_vector, ctry=parameters.ctry, target=parameters.target,
-                                   cst_imports=parameters.cst_imports,
-                                   residual=parameters.residual_global)
+        if parameters.uvek_data:
+            impact_matrix = extract_UI(path_ui=parameters.path.uvek_ui_vector, ctry=parameters.ctry,
+                                       target=parameters.target,
+                                       cst_imports=parameters.cst_imports,
+                                       residual=parameters.residual_global)
+        else:
+            impact_matrix = extract_UI(path_ui=parameters.path.ui_vector, ctry=parameters.ctry, target=parameters.target,
+                                       cst_imports=parameters.cst_imports,
+                                       residual=parameters.residual_global)
     return impact_matrix
+
+
+def load_network_impact(parameters: Parameter, is_verbose: bool = False) -> pd.DataFrame:
+    """Loads the network impact from the specified parameters.
+
+    Parameters
+    ----------
+        parameters: ecodynelec.Parameter
+            Parameters returned by load_config.
+        is_verbose: bool, default to False
+            To display progress information
+
+    Returns
+    -------
+        network_impact: pandas.DataFrame
+            The network impact matrix
+    """
+
+    # Load network impact matrix
+    network_impact = extract_network_mapping(ctry=parameters.ctry, mapping_path=parameters.path.ui_network, is_verbose=False)
+
+    return network_impact
 
 
 def get_mix(parameters: Parameter, raw_prod_exch: pd.DataFrame, return_matrix: bool = False,
@@ -367,11 +395,15 @@ def translate_to_timezone(parameters: Parameter, flows_dict: dict = None, prod_m
                 mix_dict[target] = localize_from_utc(data=mix_dict[target], timezone=parameters.timezone)
             if prod_imp_dict is not None:
                 for k in prod_imp_dict[target].keys():
-                    prod_imp_dict[target][k] = localize_from_utc(data=prod_imp_dict[target][k],
-                                                                 timezone=parameters.timezone)
+                    for i in prod_imp_dict[target][k].keys():
+                        for j in prod_imp_dict[target][k][i].keys():
+                            prod_imp_dict[target][k][i][j] = localize_from_utc(data=prod_imp_dict[target][k][i][j],
+                                                                     timezone=parameters.timezone)
             if imp_dict is not None:
                 for k in imp_dict[target].keys():
-                    imp_dict[target][k] = localize_from_utc(data=imp_dict[target][k], timezone=parameters.timezone)
+                    for i in imp_dict[target][k].keys():
+                        for j in imp_dict[target][k][i].keys():
+                            imp_dict[target][k][i][j] = localize_from_utc(data=imp_dict[target][k][i][j], timezone=parameters.timezone)
     return flows_dict, prod_mix_dict, mix_dict, prod_imp_dict, imp_dict
 
 
@@ -420,16 +452,17 @@ def save_results(parameters: Parameter, flows_dict: dict = None, impact_matrix: 
             if mix_dict is not None:
                 saving.save_dataset(data=mix_dict[country], savedir=f'{parameters.path.savedir}{country}/', name=f"Mix",
                                     freq=parameters.freq)
-            if prod_imp_dict is not None:
-                imp = prod_imp_dict[country]
-                for k in imp:
-                    saving.save_dataset(data=imp[k], savedir=f'{parameters.path.savedir}{country}/',
-                                        name=f'ProdImpact_{k.replace("_", "-")}', freq=parameters.freq)
-            if imp_dict is not None:
-                imp = imp_dict[country]
-                for k in imp:
-                    saving.save_dataset(data=imp[k], savedir=f'{parameters.path.savedir}{country}/',
-                                        name=f'Impact_{k.replace("_", "-")}', freq=parameters.freq)
+            for voltage in prod_imp_dict[country].keys():
+                if prod_imp_dict is not None:
+                    imp = prod_imp_dict[country][voltage]
+                    for k in imp:
+                        saving.save_dataset(data=imp[k], savedir=f'{parameters.path.savedir}{country}/',
+                                            name=f'ProdImpact_{voltage}_{k.replace("_", "-")}', freq=parameters.freq)
+                if imp_dict is not None:
+                    imp = imp_dict[country][voltage]
+                    for k in imp:
+                        saving.save_dataset(data=imp[k], savedir=f'{parameters.path.savedir}{country}/',
+                                            name=f'Impact_{voltage}_{k.replace("_", "-")}', freq=parameters.freq)
 
 
 def localize_from_utc(data: pd.DataFrame, timezone: str = 'CET') -> pd.DataFrame:
@@ -461,7 +494,7 @@ def get_producing_mix_kwh(flows_df: pd.DataFrame, prod_mix_df: pd.DataFrame) -> 
 
     total_kwh = flows_df['production']
     power_df = prod_mix_df.copy()
-    assert np.isclose(power_df.sum(axis=1).abs().max(), 1), "Production mix sum is not equal to 1"
+    assert (1-power_df.sum(axis=1)).abs().max() < 5e-3, "Production mix sum is not equal to 1"
     power_df = power_df.multiply(total_kwh, axis=0)
     return power_df
 
@@ -484,6 +517,71 @@ def get_consuming_mix_kwh(flows_df: pd.DataFrame, mix_df: pd.DataFrame) -> pd.Da
 
     total_kwh = flows_df['production'] + flows_df['imports'] - flows_df['exports']
     power_df = mix_df.copy()
-    assert np.isclose(power_df.sum(axis=1).abs().max(), 1), "Consumption mix sum is not equal to 1"
+    assert (1-power_df.sum(axis=1)).abs().max() < 5e-3, "Consumption mix sum is not equal to 1"
     power_df = power_df.multiply(total_kwh, axis=0)
     return power_df
+
+
+def get_voltage_impacts(parameters: Parameter, imp_dict: dict = None, network_imp: dict = None, mix: dict = None, is_verbose: bool = False) -> dict:
+    """
+    Calculates the voltage impacts for a given set of parameters ???????
+
+    Parameters
+    ----------
+    parameters : Parameter
+        Contains parameter values that guide the computation process.
+
+    imp_dict : dict, optional
+        A dictionary with existing impact data for each country. Default is None.
+
+    network_imp : dict, optional
+        A dictionary containing network impact data categorized by voltage types and impacts.
+        Default is None.
+
+    mix : dict, optional
+        A dictionary containing energy mix data by country. The function modifies these
+        data structures by dropping certain mix columns. Default is None.
+
+    is_verbose : bool, optional
+        A flag to enable or disable verbose output during computations.
+        Default is False.
+
+    Returns
+    -------
+    dict
+        A new impact dictionary containing calculated impacts for each voltage type
+        (High Voltage, Medium Voltage, Low Voltage) and impact type, structured by country.
+    """
+
+    hv = 1.028 # High Voltage : kWh input / kWh
+    mv = 1.0098 # Medium Voltage : kWh input / kWh
+    lv = 1.0564 # Low Voltage : kWh input / kWh
+
+    imp_dict_new = {}
+    for cntry in mix.keys():
+        imp_dict_new[cntry] = {}
+        for category in ['At plant', *network_imp[cntry].keys()]:
+            if category == 'Infra PHS':
+                continue
+            else:
+                cols_to_drop = [c for c in mix[cntry].columns if c.startswith('Mix') and c != 'Mix_Other']
+                mix[cntry] = mix[cntry].drop(columns=cols_to_drop)  # Droping Mix_CH, Mix_IT... columns
+                imp_dict_new[cntry][category] = {}
+                imp_dict_new[cntry][category]['Global'] = pd.DataFrame() # Global impact key added
+                for impact in imp_dict[cntry].keys():
+                    if impact != 'Global':
+                        if category == 'At plant':
+                            if cntry == 'CH':
+                                if parameters.dynamic_impact:
+                                    imp_dict[cntry][impact]['Hydro_Pumped_Storage_CH'] = imp_dict[cntry][impact]['Hydro_Pumped_Storage_CH'] + mix[cntry]['Hydro_Pumped_Storage_CH']*network_imp[cntry]['Infra PHS'][impact]
+                            imp_dict_new[cntry][category][impact] = imp_dict[cntry][impact]
+                        elif category == 'High Voltage':
+                            imp_dict_new[cntry][category][impact] = imp_dict[cntry][impact]*hv + mix[cntry]*network_imp[cntry][category][impact]
+                        elif category == 'Medium Voltage':
+                            imp_dict_new[cntry][category][impact] = imp_dict_new[cntry]['High Voltage'][impact]*mv + mix[cntry]*network_imp[cntry][category][impact]
+                        elif category == 'Low Voltage':
+                            imp_dict_new[cntry][category][impact] = imp_dict_new[cntry]['Medium Voltage'][impact]*lv + mix[cntry]*network_imp[cntry][category][impact]
+                    else: continue
+                    # Recreate the Global impact DataFrame with the new data
+                    imp_dict_new[cntry][category]['Global'][impact] = imp_dict_new[cntry][category][impact].sum(axis=1)
+    return imp_dict_new

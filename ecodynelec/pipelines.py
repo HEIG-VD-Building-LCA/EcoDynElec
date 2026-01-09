@@ -13,7 +13,7 @@ from ecodynelec.checking import check_mapping
 # +
 ####### Local modules
 from ecodynelec.pipeline_functions import load_config, check_download, load_raw_prod_exchanges, get_mix, get_impacts, \
-    translate_to_timezone, save_results, load_impact_matrix, get_flows_kwh
+    translate_to_timezone, save_results, load_impact_matrix, get_flows_kwh, load_network_impact, get_voltage_impacts
 from ecodynelec.dynamic_impact import dynamic_impact
 from ecodynelec.progress_info import ProgressInfo
 
@@ -212,6 +212,10 @@ def get_prod_mix_impacts(config, step_imp_memory, missing_mapping='error', is_ve
         progress_bar.progress('Load impact matrix...')
     impact_matrix = load_impact_matrix(parameters=p, is_verbose=is_verbose)
 
+    if progress_bar:
+        progress_bar.progress('Load network impact...')
+    network_impact = load_network_impact(parameters=p, is_verbose=is_verbose)
+
     # Verify the adequacy between production and impacts
     check_mapping(mapping=impact_matrix, mix=raw_prodExch, strategy=missing_mapping)
 
@@ -234,6 +238,8 @@ def get_prod_mix_impacts(config, step_imp_memory, missing_mapping='error', is_ve
             prod_imp_dict, imp_dict, step_imp = dynamic_impact(prod_imp_dict, imp_dict, raw_prodExch, prod_mix_dict,
                                                     mix_dict, impact_matrix, step_imp_memory, p, is_verbose=is_verbose)
             step_imp_memory[p.start.year] = step_imp
+    prod_imp_dict = get_voltage_impacts(parameters=config, imp_dict=prod_imp_dict, network_imp=network_impact, mix=prod_mix_dict, is_verbose=is_verbose)
+    imp_dict = get_voltage_impacts(parameters=config, imp_dict=imp_dict, network_imp=network_impact, mix=mix_dict, is_verbose=is_verbose)
     ##########################
     ####### COMPUTE MIX IN kWh
     #######

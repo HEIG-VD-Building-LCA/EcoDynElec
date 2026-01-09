@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as seaborn
 from matplotlib import pyplot as plt
+from collections import defaultdict
 
 from ecodynelec.parameter import Parameter
 from ecodynelec.pipelines import get_prod_mix_impacts
@@ -72,13 +73,33 @@ def generate_data(config, years: list[str], savedir: str = './mix_analysis/resul
         prods[year] = prod
         mixs[year] = mix
         if 'Carbon intensity' in prodimp.keys():  # single target
-            prod_impacts[year] = prodimp['Carbon intensity']
-        else:  # multi target
-            prod_impacts[year] = {k: prodimp[k]['Carbon intensity'] for k in prodimp.keys()}
+            prod_impacts[year] = {
+                category: prodimp[category]['Carbon intensity']
+                for category in prodimp.keys()
+            }
+        else: # multi target
+            prod_impacts[year] = {
+                country: {
+                    voltage: data['Carbon intensity']
+                    for voltage, data in voltage_dict.items()
+                    if 'Carbon intensity' in data
+                }
+                for country, voltage_dict in imp.items()
+            }
         if 'Carbon intensity' in imp.keys():  # single target
-            impacts[year] = imp['Carbon intensity']
-        else:  # multi target
-            impacts[year] = {k: imp[k]['Carbon intensity'] for k in imp.keys()}
+            impacts[year] = {
+                category: prodimp[category]['Carbon intensity']
+                for category in prodimp.keys()
+            }
+        else: # multi target
+            impacts[year] = {
+                country: {
+                    voltage: data['Carbon intensity']
+                    for voltage, data in voltage_dict.items()
+                    if 'Carbon intensity' in data
+                }
+                for country, voltage_dict in imp.items()
+            }
     if show_progress:
         progress_info_year.progress('Done!')
         progress_info_computation.hide()
@@ -141,22 +162,27 @@ def load_data(targets, freq, years: list[str], savedir: str = './mix_analysis/re
                                                parse_dates=True)
             mixs[year][country] = pd.read_csv(fsavedir + f"Mix_{tPass[freq]}.csv", index_col=0,
                                               parse_dates=True)
-            prod_impacts[year][country] = pd.read_csv(fsavedir + f"ProdImpact_Carbon intensity_{tPass[freq]}.csv",
-                                                      index_col=0,
-                                                      parse_dates=True)
-            impacts[year][country] = pd.read_csv(fsavedir + f"Impact_Carbon intensity_{tPass[freq]}.csv",
-                                                 index_col=0,
-                                                 parse_dates=True)
+            prod_impacts[year][country] = {}
+            impacts[year][country] = {}
+            for category in ['At plant', 'High Voltage','Medium Voltage', 'Low Voltage']:
+                prod_impacts[year][country][category] = pd.read_csv(fsavedir + f"ProdImpact_{category}_Carbon intensity_{tPass[freq]}.csv",
+                                                          index_col=0,
+                                                          parse_dates=True)
+                impacts[year][country][category] = pd.read_csv(fsavedir + f"Impact_{category}_Carbon intensity_{tPass[freq]}.csv",
+                                                     index_col=0,
+                                                     parse_dates=True)
     return flows_dict, prods, mixs, prod_impacts, impacts
 
 
-def format_data_0(dict_per_year: dict):
+def format_data_0(dict_per_year: dict, voltage: str = None):
     """
     Concat all years contained in the given dict and computes the sum of values per country
     Parameters
     ----------
     dict_per_year: dict of dataframe
         Dictionary containing for each year a dataframe with the values for each production mean for each country
+    voltage: str, optional
+        Given voltage level to filter the data. It concerns only impact dict
     Returns
     -------
     dict
@@ -164,11 +190,19 @@ def format_data_0(dict_per_year: dict):
             - raw_df: dataframe containing the concatenation of all years
             - df: dataframe containing the sum of values per country, and the total production in the 'sum' column
     """
-    result = {'raw_df': pd.concat(dict_per_year.values())}
-    # Imported electricity mix from each country
-    per_country = compute_per_country(result['raw_df'])
-    result['df'] = pd.DataFrame.from_dict(per_country).astype('float64')
-    result['df']['sum'] = result['df'].sum(axis=1)  # Add total consumption
+    if voltage is not None:
+        result = {voltage: {'raw_df': pd.concat(dict_per_year.values())}}
+        # Imported electricity mix from each country
+        per_country = compute_per_country(result[voltage]['raw_df'])
+        result[voltage]['df'] = pd.DataFrame.from_dict(per_country).astype('float64')
+        result[voltage]['df']['sum'] = result[voltage]['df'].sum(axis=1)  # Add total consumption
+        return result
+    else:
+        result = {'raw_df': pd.concat(dict_per_year.values())}
+        # Imported electricity mix from each country
+        per_country = compute_per_country(result['raw_df'])
+        result['df'] = pd.DataFrame.from_dict(per_country).astype('float64')
+        result['df']['sum'] = result['df'].sum(axis=1)  # Add total consumption
     return result
 
 
@@ -241,11 +275,14 @@ def concatenate_and_format_data(targets: list[str], years: list[str], flows: dic
         raw_consumptions_by_src[c] = format_data_0({y: raw_cons[y][c] for y in years})
         electricity_prod_mixs[c] = format_data_0({y: prods[y][c] for y in years})
         electricity_mixs[c] = format_data_0({y: mixs[y][c] for y in years})
-        electricity_impact = format_data_0({y: impacts[y][c] for y in years})
-        producing_electricity_impact = format_data_0({y: prod_impacts[y][c] for y in years})
-        # convert kgCO2eq/kWh -> gCO2eq/kWh
-        electricity_impacts[c] = {k: v * 1000 for k, v in electricity_impact.items()}
-        producing_electricity_impacts[c] = {k: v * 1000 for k, v in producing_electricity_impact.items()}
+        electricity_impacts[c] = {}
+        producing_electricity_impacts[c] = {}
+        for voltage in ['At plant', 'High Voltage', 'Medium Voltage', 'Low Voltage']:
+            electricity_impact = format_data_0({y: impacts[y][c][voltage] for y in years}, voltage = voltage)
+            producing_electricity_impact = format_data_0({y: prod_impacts[y][c][voltage] for y in years}, voltage = voltage)
+            # convert kgCO2eq/kWh -> gCO2eq/kWh
+            electricity_impacts[c][voltage] = {k: v * 1000 for k, v in electricity_impact[voltage].items()}
+            producing_electricity_impacts[c][voltage] = {k: v * 1000 for k, v in producing_electricity_impact[voltage].items()}
     return raw_productions_by_src, raw_consumptions_by_src, electricity_prod_mixs, electricity_mixs, producing_electricity_impacts, electricity_impacts
 
 

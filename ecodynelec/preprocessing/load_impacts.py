@@ -168,6 +168,89 @@ def extract_mapping(ctry, mapping_path=None, cst_import=False, residual=False, t
     return impact_matrix
 
 
+def extract_network_mapping(ctry, mapping_path=None, is_verbose=False):
+    """
+    Function to build the network impact dict from mapping stored in files.
+
+    Parameters
+    ----------
+        ctry: list
+            list of countries to load the impacts of
+        mapping_path: str, default to None
+            .xlsx file where to find the mapping data
+        is_verbose: bool, default to False
+            to display information
+    """
+    ### Check the country list
+    if is_verbose: print("Extraction of network impact...")
+    # Test the type of country
+    if type(ctry) == str:
+        ctry = [ctry]
+    elif '__iter__' not in dir(ctry):
+        raise TypeError("Parameter ctry should be a list, tuple or str")
+
+    df_temp = pd.read_excel(mapping_path, header=None)
+    header_idx = df_temp.index[df_temp.iloc[:, 0] == "Catégorie d'impact"].tolist()
+
+    if not header_idx:
+        raise ValueError("Header 'Catégorie d'impact' not found in file.")
+
+    matrix = pd.read_excel(mapping_path, header=header_idx[0])
+    row_to_keep = ["Climate change - Fossil", "Land use", "Particulate matter", "Human toxicity, cancer"]
+    matrix = matrix.rename(columns={"Catégorie d'impact": 'Category'})
+    matrix = matrix[matrix['Category'].isin(row_to_keep)]
+
+    if len(matrix.columns) > 1:
+        matrix = matrix.drop(matrix.columns[1], axis=1)
+    matrix = matrix.set_index('Category')
+
+    row_mapping = {
+        "Climate change - Fossil": "Carbon intensity",
+        "Land use": "Land use",
+        "Particulate matter": "Fine particulate matter formation",
+        "Human toxicity, cancer": "Human carcinogenic toxicity"
+    }
+    matrix_clean = matrix.rename(index=row_mapping)
+
+    ### Extract the impact information
+    impacts = {}
+
+    for col in matrix_clean.columns:
+        # Extract metadata from column name: "process.../unit/COUNTRY SUFFIX"
+        # Example: "electricity.../kWh/CH U"
+        if '/' not in col:
+            continue
+        process_part, country_part = col.rsplit('/', 1)
+        country_code = country_part.replace(' U', '').strip()
+        if country_code in ctry:
+            if country_code not in impacts:
+                impacts[country_code] = {}
+            if "high voltage" in process_part:
+                voltage_key = "High Voltage"
+            elif "medium voltage" in process_part:
+                voltage_key = "Medium Voltage"
+            elif "low voltage" in process_part:
+                voltage_key = "Low Voltage"
+            elif "infra at pumped storage" in process_part:
+                if country_code == "CH":
+                    voltage_key = "Infra PHS"
+
+            if voltage_key not in impacts[country_code]:
+                impacts[country_code][voltage_key] = {}
+
+            for category, value in matrix_clean[col].items():
+                impacts[country_code][voltage_key][category] = value
+
+    desired_order = ['High Voltage', 'Medium Voltage', 'Low Voltage', 'Infra PHS']
+    for code in impacts:
+        impacts[code] = {k: impacts[code][k] for k in desired_order if k in impacts[code]}
+
+    if is_verbose:
+        print(f"Extraction complete for: {list(impacts.keys())}")
+
+    return impacts
+
+
 # +
 
 #################################

@@ -62,4 +62,4 @@ def save_dataset(data, savedir, name, target=None, freq='H'):
     as_target = "" if target is None else f"_{target}"
     
     ### Saving
-    data.to_csv(savedir+f"{name}{as_target}_{tPass[freq]}.csv",index=True)
+    data.to_csv(savedir+f"{name}{as_target}_{tPass[freq]}.csv",index=True, float_format='%.3g')
