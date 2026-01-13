@@ -175,11 +175,11 @@ def load_impact_matrix(parameters: Parameter, is_verbose: bool = False) -> pd.Da
             impact_matrix = extract_UI(path_ui=parameters.path.uvek_ui_vector, ctry=parameters.ctry,
                                        target=parameters.target,
                                        cst_imports=parameters.cst_imports,
-                                       residual=parameters.residual_global)
+                                       residual=parameters.residual_global, parameters=parameters)
         else:
             impact_matrix = extract_UI(path_ui=parameters.path.ui_vector, ctry=parameters.ctry, target=parameters.target,
                                        cst_imports=parameters.cst_imports,
-                                       residual=parameters.residual_global)
+                                       residual=parameters.residual_global, parameters=parameters)
     return impact_matrix
 
 

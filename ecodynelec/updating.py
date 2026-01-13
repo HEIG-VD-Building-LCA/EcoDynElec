@@ -119,7 +119,8 @@ def update_UVEKVector(path, is_verbose):
     UI_vector_path = os.path.join(path, "Unit_Impact_Vector.csv")
     UVEK_path = os.path.join(path, "UVEK_LCA.xlsx")
     vector = impact_mapping_matching(UVEK_path, UI_vector_path, mapping_path, is_verbose=is_verbose)
-    vector.to_csv(os.path.join("data", "UVEK_Unit_Impact_Vector.csv"), index=True)
+    vector.to_csv(os.path.join(path, "UVEK_Unit_Impact_Vector.csv"), index=True)
+    update_copy(os.path.join(path, "UVEK_Unit_Impact_Vector.csv"), "UVEK_Unit_Impact_Vector.csv")
 
 
 def update_SFOE(path):

@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from ecodynelec.preprocessing.auxiliary import get_default_file
+from ecodynelec.parameter import Parameter
 
 
 # +
@@ -21,11 +22,15 @@ from ecodynelec.preprocessing.auxiliary import get_default_file
 
 # -
 
-def extract_UI(path_ui, ctry: list = None, target: str = 'CH', residual: bool = False, cst_imports: bool = False):
+def extract_UI(parameters: Parameter, path_ui, ctry: list = None, target: str = 'CH', residual: bool = False, cst_imports: bool = False):
     """Function to extract and modify the UI vector from a .csv file"""
     ### Get default file if None
     if path_ui is None:
-        path_ui = get_default_file(name='Unit_Impact_Vector.csv')
+        if parameters.uvek_data:
+            file = 'UVEK_Unit_Impact_Vector.csv'
+        else:
+            file = 'Unit_Impact_Vector.csv'
+        path_ui = get_default_file(name=file)
 
     ### Import the UI
     ui = pd.read_csv(path_ui, index_col=[0])
