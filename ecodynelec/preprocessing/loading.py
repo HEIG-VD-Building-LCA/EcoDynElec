@@ -236,7 +236,7 @@ def import_generation(ctry, start, end, path_gen=None, path_prep=None, savedir=N
 
 # -
 
-def adjust_generation(Gen, freq='H', residual_global=False, start=None, end=None,
+def adjust_generation(Gen, freq='h', residual_global=False, start=None, end=None,
                       sg_data=None, path_gap=None, enr_prod_ch=None, is_verbose=False):
     """Function that leads organizes the data adjustment.
     It sorts finds and sorts missing values, fills it, resample the data and

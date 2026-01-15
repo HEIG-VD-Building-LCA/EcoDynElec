@@ -8,3 +8,4 @@ matplotlib
 tabula-py
 ipywidgets
 seaborn
+scikit-learn

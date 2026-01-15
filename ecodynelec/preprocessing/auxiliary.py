@@ -9,6 +9,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import tabula as tabula
+from datetime import datetime
 
 ################# Local functions
 from ecodynelec.checking import check_frequency
@@ -71,9 +72,11 @@ def load_swissGrid(path_sg, start=None, end=None, freq='H'):
     ### Rename the columns
     sg.columns = ["Production_CH", "Mix_CH_AT", "Mix_AT_CH", "Mix_CH_DE", "Mix_DE_CH",
                   "Mix_CH_FR", "Mix_FR_CH", "Mix_CH_IT", "Mix_IT_CH"]
+    start = pd.to_datetime(start)
+    end = pd.to_datetime(end)
 
     ### Select the interesting data, resample to right frequency and convert kWh -> MWh
-    return sg.loc[start:end, :].resample(freq).sum() / 1000
+    return sg.loc[(sg.index >= start) & (sg.index <= end)].resample(freq).sum() / 1000
 
 
 # +
@@ -227,7 +230,7 @@ def load_gap_content(path_gap, start=None, end=None, freq='H', enr_prod_residual
         df = pd.read_csv(path_gap, index_col=0, parse_dates=True)  # Load csv file from user
     else:
         # cannot use the function in update, due to a circular import
-        interest = {'Centrales au fil de l’eau': "Hydro_Run-of-river_and_poundage_Res",
+        interest = {r'Centrales au fil de l\ eau': "Hydro_Run-of-river_and_poundage_Res",
                     'Centrales à accumulation': "Hydro_Water_Reservoir_Res",
                     'Centrales therm. classiques et renouvelables': "Other_Res"}
         df = pd.read_excel(path_gap, header=59, index_col=0).loc[interest.keys()].rename(index=interest)
@@ -257,12 +260,13 @@ def load_gap_content(path_gap, start=None, end=None, freq='H', enr_prod_residual
     res_start, res_end = None, None
     if start is not None:
         start = pd.to_datetime(start)  # Savety, redefine as datetime
-        res_start = start + pd.offsets.MonthBegin(-1)  # Round at 1 month before start
+        res_start = start
     if end is not None:
         end = pd.to_datetime(end)  # Savety, redefine as datetime
         res_end = end + pd.offsets.MonthEnd(0)  # Round at the end of the last month
-    df = df.loc[res_start:res_end, ['Hydro_Run-of-river_and_poundage_Res', 'Hydro_Water_Reservoir_Res',
-                                    'Other_Res']]  # Select information only for good duration
+    cols = ['Hydro_Run-of-river_and_poundage_Res', 'Hydro_Water_Reservoir_Res', 'Other_Res']
+    df.index = pd.to_datetime(df.index)
+    df = df.loc[(df.index >= res_start) & (df.index <= res_end), cols]# Select information only for good duration
     if start is None: res_start = df.index[0]
     if end is None: res_end = df.index[-1]
 
@@ -482,14 +486,43 @@ def post_process_2022(columns):
         columns[i].append(lm1[i])
     return columns
 
+def post_process_2023(columns):
+    """ Helper to fix the 2023 data read from the OFEN pdf file """
+    # Last line is missing in 2023
+    lm1 = ['157,6', '-', '-', '174,9', '-', '-', '183,8', '-', '-', '195,4', '-', '-']
+    for i in range(len(columns)):
+        columns[i].append(lm1[i])
+    return columns
+
+
+def post_process_2024(columns):
+    """ Helper to fix the 2024 data read from the OFEN pdf file """
+    # Add missing first and second lanes date
+    l1dates = ['17.1.2024', '20.1.2024', '21.1.2024', '21.2.2024', '24.2.2024', '25.2.2024', '20.3.2024', '23.3.2024',
+               '24.3.2024', '17.4.2024', '20.4.2024', '21.4.2024']
+    l2dates = ['15.5.2024', '18.5.2024', '19.5.2024', '19.6.2024', '22.6.2024', '23.6.2024', '17.7.2024', '20.7.2024',
+               '21.7.2024', '21.8.2024', '24.8.2024', '25.8.2024']
+    for i in range(0, len(l1dates)):
+        columns[i].insert(0, l1dates[i])
+        columns[i].insert(11, l2dates[i])
+        columns[i] = list(pd.Series(columns[i]).dropna())
+        columns[i] = [x for x in columns[i] if x != 0]
+    # Add missing last 2 lanes
+    lm1 = ['4,8', '–', '–', '26,3', '–', '–', '7,8', '–', '–', '4,5', '–', '–']
+    lm2 = ['161,3', '–', '–', '165,9', '–', '–', '198,1', '–', '–', '197,2', '–', '–']
+    for i in range(len(columns)):
+        columns[i].append(lm1[i])
+        columns[i].append(lm2[i])
+    return columns
+
 
 def read_ofen_pdf_file(file, post_process_fun, page=31):
     """
     Reads an ofen pdf file and extracts a dictionary of typical days with their electricity mix.
-    Supports years from 2017 to 2022. Not tested after.
+    Supports years from 2017 to 2024. Not tested after.
     A post-processing function should be provided to fix the data read from the pdf file.
     This function depends on the year of the data because the format of the pdf file changes between years.
-    Two post-processing functions are provided above for 2017 and 2022.
+    Four post-processing functions are provided above for 2017, 2022, 2023 and 2024.
 
     Parameters
     ----------
@@ -502,56 +535,103 @@ def read_ofen_pdf_file(file, post_process_fun, page=31):
         Page of the pdf file to read (default: 31)
     """
     print('Reading', file)
-    # Read the pdf file
-    tables = tabula.read_pdf(file, pages=page, stream=True)
-    table = tables[0]
-    mapping = table.columns
     # Reconstruct all columns (some of them are merged by tabula)
-    # Tested with 2017 and 2022
+    # Tested with 2017, 2022, 2023 and 2024
     # This should work for 2018 and following years
     columns = []
-    c12 = table[mapping[1]].tolist()
-    c12.insert(0, mapping[1])
-    columns.append([split_cell(s, 0) for s in c12])
-    columns.append([split_cell(s, 1) for s in c12])
-    c3 = table[mapping[2]].tolist()
-    c3.insert(0, mapping[2])
-    columns.append(c3)
-    c45 = table[mapping[4]].tolist()
-    c45.insert(0, mapping[4])
-    columns.append([split_cell(s, 0) for s in c45])
-    columns.append([split_cell(s, 1) for s in c45])
-    c6 = table[mapping[5]].tolist()
-    c6.insert(0, mapping[5])
-    columns.append(c6)
-    c78 = table[mapping[7]].tolist()
-    c78.insert(0, mapping[7])
-    columns.append([split_cell(s, 0) for s in c78])
-    columns.append([split_cell(s, 1) for s in c78])
-    c9 = table[mapping[8]].tolist()
-    c9.insert(0, mapping[8])
-    columns.append(c9)
-    c1011 = table[mapping[10]].tolist()
-    c1011.insert(0, mapping[10])
-    columns.append([split_cell(s, 0) for s in c1011])
-    columns.append([split_cell(s, 1) for s in c1011])
-    c12 = table[mapping[11]].tolist()
-    c12.insert(0, mapping[11])
-    columns.append(c12)
+
+    if file.endswith('23.pdf'):
+        tables = tabula.read_pdf(file, pages=page, stream=True)
+        table = tables[0].drop(columns=['2023: Monat', 'Unnamed: 0', 'Unnamed: 2', 'Unnamed: 4', 'Unnamed: 6', 'Unnamed: 8', '2023: Mois'])
+        table = table.iloc[1:].reset_index(drop=True)
+        mapping = table.columns
+        for i in range(len(mapping)):
+            if i in [1,3,5,7]: ### Columns to split
+                c = table[mapping[i]].tolist()
+                c1 = [split_cell(s, 0) for s in c]
+                c2 = [split_cell(s, 1) for s in c]
+                for cell in [0,11,11,11,22,22,22]:
+                    c1.pop(cell)
+                    c2.pop(cell)
+                columns.append(c1)
+                columns.append(c2)
+            else: ### Columns already usable
+                c = table[mapping[i]].tolist()
+                for cell in [0,11,11,11,22,22,22]:
+                    c.pop(cell)
+                columns.append(c)
+    elif file.endswith('24.pdf'):
+        page = 30
+        tables = tabula.read_pdf(file, pages=page, stream=True)
+        table = tables[0]
+        header_row = pd.DataFrame([table.columns], columns=table.columns)
+        table = pd.concat([header_row, table], ignore_index=True)
+        table.columns = range(table.shape[1])
+        table = table.drop(columns=[0, 3, 6, 9, 12, 13])
+        mapping = table.columns
+
+        columns = []
+        for i in range(len(mapping)):
+            if i in [0, 2, 4, 6]:  ### Columns to split
+                c = table[mapping[i]].tolist()
+                c1 = [split_cell(s, 0) for s in c]
+                c2 = [split_cell(s, 1) for s in c]
+                for cell in [11, 11, 11, 10, 21, 21, 21]:
+                    c1.pop(cell)
+                    c2.pop(cell)
+                columns.append(c1)
+                columns.append(c2)
+            else: ### Columns already usable
+                c = table[mapping[i]].tolist()
+                for cell in [11, 11, 11, 10, 21, 21, 21]:
+                    c.pop(cell)
+                columns.append(c)
+    else:
+        tables = tabula.read_pdf(file, pages=page, stream=True)
+        table = tables[0]
+        mapping = table.columns
+        for i in range(len(mapping)):
+            if i in [1,4,7,10]: ### Columns to split
+                c = table[mapping[i]].tolist()
+                c.insert(0, mapping[i])
+                columns.append([split_cell(s, 0) for s in c])
+                columns.append([split_cell(s, 1) for s in c])
+            elif i in [2,5,8,11]: ### Columns already usable
+                c = table[mapping[i]].tolist()
+                c.insert(0, mapping[i])
+                columns.append(c)
 
     # Apply custom post-processing depending on the year
     columns = post_process_fun(columns)
 
     # Complete all days from the table data
     days = {}
-    index = 0
-    for column in columns:
-        days[column[index]] = column[index + 1:index + 11]
-    index = 14
-    for column in columns:
-        days[column[index]] = column[index + 1:index + 11]
-    index = 28
-    for column in columns:
-        days[column[index]] = column[index + 1:index + 11]
+    if file.endswith('23.pdf') or file.endswith('24.pdf'):
+        index = 0
+        for column in columns:
+            days[datetime.strptime(column[index], "%d.%m.%Y").strftime("%Y-%m-%d")] = column[
+                index + 1:index + 11]
+        index = 11
+        for column in columns:
+            days[datetime.strptime(column[index], "%d.%m.%Y").strftime("%Y-%m-%d")] = column[
+                index + 1:index + 11]
+        index = 22
+        for column in columns:
+            days[datetime.strptime(column[index], "%d.%m.%Y").strftime("%Y-%m-%d")] = column[
+                index + 1:index + 11]
+    else:
+        index = 0
+        for column in columns:
+            days[datetime.strptime(column[index], "%d.%m.%Y").strftime("%Y-%m-%d")] = column[
+                index + 1:index + 11]
+        index = 14
+        for column in columns:
+            days[datetime.strptime(column[index], "%d.%m.%Y").strftime("%Y-%m-%d")] = column[
+                index + 1:index + 11]
+        index = 28
+        for column in columns:
+            days[datetime.strptime(column[index], "%d.%m.%Y").strftime("%Y-%m-%d")] = column[
+                index + 1:index + 11]
+
     # return the data
     return days

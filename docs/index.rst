@@ -133,6 +133,11 @@ P.Padey et al., 2020, 'Dynamic Life Cycle Assessment of the building electricity
     modules/updating
 
 
+.. toctree::
+    :maxdepth: 1
+    :caption: Update note
+
+    update_note/update_2025
 
 
 Indices and tables
