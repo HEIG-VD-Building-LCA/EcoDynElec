@@ -570,7 +570,28 @@ def extract_uvek_impact(ctry, vector_path, is_verbose=False) -> DataFrame:
     return matrix_clean
 
 def impact_mapping_matching(uvek_path, ui_vector_path, mapping_path, is_verbose=False):
-    """"""
+    """
+    Matches technologies with their environmental impact values by mapping data from
+    various sources (UVEK, UI impact vector, and mapping details). Generates a new
+    dataframe aligning UI technologies to their corresponding impact values.
+
+    Parameters
+    ----------
+    uvek_path : str
+        File path to the UVEK impact data file.
+    ui_vector_path : str
+        File path to the UI impact vector data file.
+    mapping_path : str
+        File path to the mapping file linking EcoInvent and UVEK.
+    is_verbose : bool, optional
+        Flag to enable verbose output during the process, default is False.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A new impact vector with combined environmental data for technologies from
+        the UI impact vector and the mapping to UVEK impact data.
+    """
 
     # Loading UVEK impact data
     ctry = ['CH','AT','DE','FR','CZ','IT']
