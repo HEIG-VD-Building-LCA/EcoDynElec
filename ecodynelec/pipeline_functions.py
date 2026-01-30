@@ -195,11 +195,11 @@ def load_network_impact(parameters: Parameter, is_verbose: bool = False) -> pd.D
 
     Returns
     -------
-        network_impact: pandas.DataFrame
-            The network impact matrix
+        network_impact: dict
+            The network impact dictionary
     """
 
-    # Load network impact matrix
+    # Load network impact dict
     network_impact = extract_network_mapping(ctry=parameters.ctry, mapping_path=parameters.path.ui_network, is_verbose=False)
 
     return network_impact
@@ -571,9 +571,6 @@ def get_voltage_impacts(parameters: Parameter, imp_dict: dict = None, network_im
                 for impact in imp_dict[cntry].keys():
                     if impact != 'Global':
                         if category == 'At plant':
-                            if cntry == 'CH':
-                                if parameters.dynamic_impact:
-                                    imp_dict[cntry][impact]['Hydro_Pumped_Storage_CH'] = imp_dict[cntry][impact]['Hydro_Pumped_Storage_CH'] + mix[cntry]['Hydro_Pumped_Storage_CH']*network_imp[cntry]['Infra PHS'][impact]
                             imp_dict_new[cntry][category][impact] = imp_dict[cntry][impact]
                         elif category == 'High Voltage':
                             imp_dict_new[cntry][category][impact] = imp_dict[cntry][impact]*hv + mix[cntry]*network_imp[cntry][category][impact]
