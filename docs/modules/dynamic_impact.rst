@@ -1,4 +1,4 @@
-Dynamic Storage Modeling (Pumped Storage)
+dynamic_impact
 =========================================
 
 Main Calculation Functions
