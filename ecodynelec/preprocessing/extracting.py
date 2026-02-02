@@ -175,6 +175,7 @@ def create_per_country(path_dir: dict, case: str, start=None, end=None, ctry: li
 
         # Select only the Generation data, then resample in 15min and interpolate (regardless of ResolutionCode)
         Data[c] = country_data.pivot(index='DateTime', columns=origin, values=data)
+        Data[c]['Hydro_Pumpage'] = 0.0
         del country_data  # free memory space
 
     ### AUTOCOMPLETE THE DATA

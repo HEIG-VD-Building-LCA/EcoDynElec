@@ -39,6 +39,8 @@ pronovo_types_map = {
         # 'Gas_3': '-A.Gasturbine [kWh]',
         # 'Unknown': '-A.Leichtwasserreaktor [kWh]', #light water  -> matches nuclear production
         # 'Combustion_engine': '-A.Verbrennungsmotor [kWh]'
+        'Hydro_Pumpage': '+A.Pumpspeicherkraftwerk [kWh]',
+        'Hydro_Pumped_Storage': '-A.Pumpspeicherkraftwerk [kWh]'
     },
     '7': {
         'Wind': '-A.Windturbine [kWh]',
@@ -56,6 +58,8 @@ pronovo_types_map = {
         # 'Gas_3': '-A.Gasturbine [kWh]',
         # 'Unknown': '-A.Leichtwasserreaktor [kWh]', #light water  -> matches nuclear production
         # 'Combustion_engine': '-A.Verbrennungsmotor [kWh]'
+        'Hydro_Pumpage': '+A.Pumpspeicherkraft [kWh]',
+        'Hydro_Pumped_Storage': '-A.Pumpspeicherkraft [kWh]'
     }
 }
 """
@@ -176,10 +180,26 @@ data_mappings = {
             'source': 'Pronovo',
             'series': 'Biomass_2_waste'
         }
+    ],
+    'Hydro_Pumped_Storage': [
+        {
+            'start': '2023-01-01',
+            'end': 'last',
+            'source': 'Pronovo',
+            'series': 'Hydro_Pumped_Storage'
+        }
+    ],
+    'Hydro_Pumpage': [
+        {
+            'start': '2023-01-01',
+            'end': 'last',
+            'source': 'Pronovo',
+            'series': 'Hydro_Pumpage'
+        }
     ]
 }
 """
-**The reorganization rules are only valid for the 2020-2022 period.**
+**The reorganization rules are only valid for the 2020-2024 period.**
     
 A dict giving the mapping between the columns of the final data (result) and the source data from Pronovo and EnergyCharts. 
 Used by the reorganize_enr_data method. 

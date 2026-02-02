@@ -56,7 +56,11 @@ class Parameter():
             to enable automatic data cleaning / filling
         ch_enr_model_path: str
             Path to the CH renewable energy production data, exported using EcoDynElec-Enr-Model. When residual global is True, this is used to replace the ``Residual_Other_CH`` category.
-    
+        storage_path: str
+            Path to the CH storage data.
+        dynamic_impact: bool
+            To enable dynamic impact calculation
+
     Methods
     -------
         from_excel(excel):
@@ -97,8 +101,11 @@ class Parameter():
         self.residual_local = False
         self.residual_global = False
         self.data_cleaning = True
+        self.dynamic_impact = True
+        self.interpolated_stock = True
 
         self.ch_enr_model_path = None
+        self.storage_path = None
 
         if excel is not None: # Initialize with an excel file
             self.from_excel(excel)

@@ -17,6 +17,7 @@ import os.path
 
 import numpy as np
 import pandas as pd
+from pandas import DataFrame
 
 from ecodynelec import saving
 from ecodynelec.impacts import compute_impacts
@@ -355,7 +356,7 @@ def translate_to_timezone(parameters: Parameter, flows_dict: dict = None, prod_m
     (flows_dict, prod_mix_dict, mix_dict, prod_imp_dict, imp_dict): tuple of dict
         The same dictionaries, with the data translated to the right timezone.
     """
-    if parameters.timezone is not None:
+    if parameters.timezone is not None and parameters.timezone != 'UTC':
         if is_verbose: print(f"Adapt timezone: UTC >> {parameters.timezone}")
         for target in parameters.target:
             if flows_dict is not None:

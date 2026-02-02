@@ -172,14 +172,14 @@ def ofen_pdf_to_df(file, page):
 
 def updating_ofen_data(file):
     """
-    Full pipeline for an OFEN PDF to obtain SFOE_data dataframe for:
-
+    Full pipeline for an OFEN PDF to obtain SFOE_data dataframe fo:
+    
     - Load expected pages (depending on year),
     - Apply column splits and cleanup,
     - Concatenate tables,
     - Rename and reorder final columns,
     - Add 'mois' column and sort by year.
-
+    
     /!\ Only works for the 2024 update.
 
     Parameters
@@ -191,7 +191,7 @@ def updating_ofen_data(file):
     -------
     pd.DataFrame
         Final DataFrame with columns:
-        ["annee","mois","Hydro","Nuclear","Thermical","Conso_pompes_STEP", 
+        ["annee","mois","Hydro","Nuclear","Thermical","Conso_pompes_STEP",
         "Prod_nette","Imports","Exports","Conso_CH","Pertes","Conso_Finale_CH"]
         Sorted by year and month.
     """

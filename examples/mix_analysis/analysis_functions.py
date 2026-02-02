@@ -51,6 +51,7 @@ def generate_data(config, years: list[str], savedir: str = './mix_analysis/resul
     mixs = {}  # Energetic mixes per year
     prod_impacts = {}
     impacts = {}  # Carbon intensity impacts per year
+    step_imp_memory = {} # Dictionnary containing the last STEP impact of the last year
     if show_progress:
         progress_info_year = ProgressInfo('Compute ' + years[0] + '...', len(years) + 1, width='90%')
         progress_info_computation = ProgressInfo('', 11, color='lightgreen', width='90%')
@@ -63,7 +64,7 @@ def generate_data(config, years: list[str], savedir: str = './mix_analysis/resul
         config.start = year + '-01-01 00:00'
         config.end = year + '-12-31 23:45'
         config.path.savedir = savedir + year + "/"
-        raw, prod, mix, prodimp, imp = get_prod_mix_impacts(config=config, is_verbose=is_verbose,
+        raw, prod, mix, prodimp, imp, step_imp_memory = get_prod_mix_impacts(config=config,step_imp_memory=step_imp_memory, is_verbose=is_verbose,
                                                             progress_bar=progress_info_computation)
         if show_progress:
             progress_info_year.progress()

@@ -418,18 +418,21 @@ def load_ch_enr_model(ch_enr_model_path, start, end, freq):
     enr_prod_ch = pd.read_csv(ch_enr_model_path, index_col=0, parse_dates=[0]).astype(float)
     # Verify that the dataframe contains the right columns
     assert np.all([c in enr_prod_ch.columns for c in
-                   ['Wind', 'Solar', 'Waste', 'Biogas', 'Sewage_gas', 'Biomass_1_crops', 'Biomass_2_waste']])
+                   ['Wind', 'Solar', 'Waste', 'Biogas', 'Sewage_gas', 'Biomass_1_crops', 'Biomass_2_waste', 'Hydro_Pumped_Storage', 'Hydro_Pumpage']])
     # Adapt the dataframe to the right format
     enr_prod_ch = enr_prod_ch.loc[start + pd.Timedelta('1H'):end + pd.Timedelta('1H')] / 1000  # Convert from kWh to MWh
     name_map = {
         'Wind': 'Wind_Onshore_CH',
         'Solar': 'Solar_CH',
-        'Waste': 'Waste_CH'
+        'Waste': 'Waste_CH',
+        'Hydro_Pumped_Storage': 'Hydro_Pumped_Storage_CH',
+        'Hydro_Pumpage': 'Hydro_Pumpage_CH'
     }
     enr_prod_ch['Biomass_CH'] = enr_prod_ch['Biomass_1_crops'] + enr_prod_ch['Biomass_2_waste'] + enr_prod_ch[
         'Biogas'] + enr_prod_ch['Sewage_gas']
     enr_prod_ch.drop(columns=['Biomass_1_crops', 'Biomass_2_waste', 'Biogas', 'Sewage_gas'], inplace=True)
     enr_prod_ch.rename(columns=name_map, inplace=True)
+    enr_prod_ch['Hydro_Pumpage_CH'] = -enr_prod_ch['Hydro_Pumpage_CH'] # Negative values -> consumption
     enr_prod_ch.index = enr_prod_ch.index - pd.Timedelta('1H')  # Shift the index to the left
     # Resample the dataframe to the right frequency (and sum the production values)
     enr_prod_ch = enr_prod_ch.resample(freq).sum()
