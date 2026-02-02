@@ -25,11 +25,13 @@ def _extract_numbers(cell, page):
     Returns
     -------
     list
+    
         - page 47: up to 4 values (Nuclear, Thermical, Wind, PV).
         - page 48: 2 values (Total, Conso_pompes_STEP).
         - page 50: 2 values (Conso_pompes_STEP, Prod_nette).
         - Fills with pd.NA when fewer values are found.
         - May return an empty list if nothing can be extracted.
+        
     """
     if pd.isna(cell):
         return [pd.NA, pd.NA, pd.NA, pd.NA]
@@ -138,10 +140,12 @@ def ofen_pdf_to_df(file, page):
     Returns
     -------
     pd.DataFrame
+    
         - Page 47: Nuclear/Thermical/Wind/PV columns extracted
         - Page 48: Total/Conso_pompes_STEP columns extracted
         - Page 50: Conso_pompes_STEP/Prod_nette columns extracted
         - Others: raw table
+        
     """
     tables = tabula.read_pdf(file, pages=page, pandas_options={'header': None}, stream=True)
 
@@ -169,11 +173,13 @@ def ofen_pdf_to_df(file, page):
 def updating_ofen_data(file):
     """
     Full pipeline for an OFEN PDF to obtain SFOE_data dataframe fo:
+    
     - Load expected pages (depending on year),
     - Apply column splits and cleanup,
     - Concatenate tables,
     - Rename and reorder final columns,
     - Add 'mois' column and sort by year.
+    
     /!\ Only works for the 2024 update.
 
     Parameters
@@ -186,7 +192,7 @@ def updating_ofen_data(file):
     pd.DataFrame
         Final DataFrame with columns:
         ["annee","mois","Hydro","Nuclear","Thermical","Conso_pompes_STEP",
-         "Prod_nette","Imports","Exports","Conso_CH","Pertes","Conso_Finale_CH"]
+        "Prod_nette","Imports","Exports","Conso_CH","Pertes","Conso_Finale_CH"]
         Sorted by year and month.
     """
     print('Reading', file)
