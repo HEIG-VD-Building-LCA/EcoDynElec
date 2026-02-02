@@ -161,7 +161,7 @@ def extract_entsoe_daily_generation_for_residuals(config, path_dir=None, n_hours
     corresponds to the days in the 'Redisual_model.xlsx' file. The data is saved in a file named
     'daily_entsoe_data_for_residual.csv' in path_dir.
 
-   **Note that the required entsoe data isn't downloaded automatically. See downloading.py for more information.**
+    **Note that the required entsoe data isn't downloaded automatically. See downloading.py for more information.**
 
     Parameters
     ----------
@@ -250,7 +250,7 @@ def extract_ofen_typical_days_for_residual(year, post_process_fun, path_dir=None
     corresponds to the days in the 'Redisual_model.xlsx' file. The data is saved in a file named
     'ofen_data/daily_ofen_data_for_residual_year.csv' in path_dir.
 
-   **The input data is the annual report of the OFEN, in a pdf that should be named 'year.pdf' and in the directory path_dir'/ofen_data'.**
+    **The input data is the annual report of the OFEN, in a pdf that should be named 'year.pdf' and in the directory path_dir'/ofen_data'.**
 
     Parameters
     ----------
@@ -438,12 +438,14 @@ def update_enr_data_from_pronovo(path_dir=None, output_file=None, verbose=False)
         :ref:`ecodynelec.preprocessing.enr_residual_utils <pronovo-and-energycharts-data-downloading>` module.
 
     | The source files should be placed in the `path_dir` directory :
+    
     - a 'pronovo_data' sub-directory should contain the files from Pronovo ('prod_year' directories containing the .csv
       files downloaded on the Pronovo's website, AND a 'EC_Solar_year.csv' EnergyCharts solar production file to scale the
       hourly Pronovo data to the real daily production given by EnergyCharts
       (see :ref:`ecodynelec.preprocessing.enr_residual_utils <pronovo-and-energycharts-data-downloading>` module documentation)
     - a 'energy_charts_data' sub-directory should contain the files from Energy Charts
     - a 'enr_prod_2016-2019.csv' file should be in the `path_dir` directory
+    
     | This file is generated using the Ecd-EnrModel project. It contains predicted solar and wind electricity production
         from 2016 to 2019.
 
