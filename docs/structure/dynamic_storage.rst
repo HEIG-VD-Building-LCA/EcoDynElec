@@ -18,6 +18,7 @@ Methodology: How it works
 -------------------------
 
 The model relies on a dual-layer approach: a **Hydraulic Mass Balance** and a **Recursive Carbon Tracking**.
+To obtain the results, only the total capacity of Swiss reservoirs is used, and this from 2023 onwards.
 
 1. Reservoir Composition
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -25,7 +26,7 @@ The model relies on a dual-layer approach: a **Hydraulic Mass Balance** and a **
 The model conceptually splits the reservoir volume *V* into two mixing compartments:
 
 * **Natural Stock** (:math:`S_N`): Water from natural inflows (rain, snowmelt). Considered **0 gCO2eq/kWh**.
-* **Natural Stock** (:math:`S_P`): Water pumped from the grid. Carries the carbon intensity of the grid at the time of pumping.
+* **Pumped Stock** (:math:`S_P`): Water pumped from the grid. Carries the carbon intensity of the grid at the time of pumping.
 
 The first step is to determined the physical composition of the reservoir at each time step *t*. The hydraulic mass balance equation allows to obtain the natural income.
 
@@ -35,8 +36,8 @@ The first step is to determined the physical composition of the reservoir at eac
 Where :
 
 * :math:`S(t)` : Reservoir level at time *t* [MWh]
-* :math:`P_in(t)` : Pumped energy at time *t* [MWh]
-* :math:`P_out(t)` : Discharge energy at time *t* [MWh]
+* :math:`P_{in}(t)` : Pumped energy at time *t* [MWh]
+* :math:`P__{out}(t)` : Discharge energy at time *t* [MWh]
 
 At every time step *t*, the module calculates an intermediate state (called with a tilde ~) before discharge :
 
@@ -81,9 +82,9 @@ The carbon intensity of the PHS generation :math:`I_PHS(t)` is updated hourly. I
 
 Where:
 
-* :math:`I_PHS(t)`: Dynamic carbon intensity of the PHS [gCO2eq/kWh].
-* :math:`I_Mix(t)`: Carbon intensity of the Swiss consumption mix at hour *t*.
-* :math:`f_Renew(t)`: Renewal factor (ratio of new pumped volume to total stock).
+* :math:`I_{PHS}(t)`: Dynamic carbon intensity of the PHS [gCO2eq/kWh].
+* :math:`I_{Mix}(t)`: Carbon intensity of the Swiss consumption mix at hour *t*.
+* :math:`f{renew}(t)`: Renewal factor (ratio of new pumped volume to total stock).
 
 .. math::
 
