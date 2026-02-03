@@ -37,7 +37,7 @@ Where :
 
 * :math:`S(t)` : Reservoir level at time *t* [MWh]
 * :math:`P_{in}(t)` : Pumped energy at time *t* [MWh]
-* :math:`P__{out}(t)` : Discharge energy at time *t* [MWh]
+* :math:`P_{out}(t)` : Discharge energy at time *t* [MWh]
 
 At every time step *t*, the module calculates an intermediate state (called with a tilde ~) before discharge :
 
