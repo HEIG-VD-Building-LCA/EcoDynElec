@@ -26,7 +26,7 @@ def update_all(path_dir=None, path_swissGrid=None, is_verbose=False):
     Updates all possible software files at once.
     
     Parameter
-    ----------
+    ---------
         path_dir: str, optional
             path to the directory containing updated files. Typically, this is the `support_files/`
             directory of the cloned git repository of EcoDynElec. The directory must contain ALL
@@ -200,7 +200,7 @@ def extract_entsoe_daily_generation_for_residuals(config, path_dir=None, n_hours
         to display information. Default to False.
 
     Returns
-    --------
+    -------
         A pandas.DataFrame containing the daily entsoe data that will be used for the residual share estimation.
     """
 
@@ -281,7 +281,7 @@ def extract_ofen_typical_days_for_residual(year, post_process_fun, path_dir=None
         default is True.
 
     Returns
-    --------
+    -------
         A dict containing the ofen data of the typical days that will be used for the residual share estimation.
     """
 
@@ -340,7 +340,7 @@ def update_sg(path_dir=None, path_files=None, save=True, is_verbose=False):
     software files if save=True.
     
     Parameters
-    -----------
+    ----------
         path_dir: str, optional
             path do directory containing EXCLUSIVELY the files from swissgrid.ch
             Either path_dir or path_files must be specified.
@@ -353,7 +353,7 @@ def update_sg(path_dir=None, path_files=None, save=True, is_verbose=False):
         is_verbose: to display information
         
     Returns
-    --------
+    -------
         pandas.DataFrame
     """
     ### List the elements / files
