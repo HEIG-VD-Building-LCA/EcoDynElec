@@ -173,7 +173,7 @@ def extract_entsoe_daily_generation_for_residuals(config, path_dir=None, n_hours
     corresponds to the days in the 'Redisual_model.xlsx' file. The data is saved in a file named
     'daily_entsoe_data_for_residual.csv' in path_dir.
 
-   **Note that the required entsoe data isn't downloaded automatically. See downloading.py for more information.**
+    **Note that the required entsoe data isn't downloaded automatically. See downloading.py for more information.**
 
     Parameters
     ----------
@@ -262,7 +262,7 @@ def extract_ofen_typical_days_for_residual(year, post_process_fun, path_dir=None
     corresponds to the days in the 'Redisual_model.xlsx' file. The data is saved in a file named
     'ofen_data/daily_ofen_data_for_residual_year.csv' in path_dir.
 
-   **The input data is the annual report of the OFEN, in a pdf that should be named 'year.pdf' and in the directory path_dir'/ofen_data'.**
+    **The input data is the annual report of the OFEN, in a pdf that should be named 'year.pdf' and in the directory path_dir'/ofen_data'.**
 
     Parameters
     ----------
