@@ -13,6 +13,7 @@ from time import time
 
 import numpy as np
 import pandas as pd
+from pandas import DataFrame
 
 from ecodynelec.preprocessing.auxiliary import get_default_file, read_ofen_pdf_file
 from ecodynelec.preprocessing.enr_residual_utils import get_enr_data_from_pronovo_ec
@@ -59,7 +60,9 @@ def update_all(path_dir=None, path_swissGrid=None, is_verbose=False):
     update_neighbours(os.path.join(path_dir, "Neighbourhood_EU.csv"))
     if is_verbose: print(f"Updated Neighbourhood file")
     update_UIVector(os.path.join(path_dir, "Unit_Impact_Vector.csv"))
-    if is_verbose: print(f"Updated UI cector file")
+    if is_verbose: print(f"Updated UI vector file")
+    update_UVEKVector(path_dir, is_verbose)
+    if is_verbose: print(f"Updated UVEK UI vector file")
     update_SFOE(os.path.join(path_dir, "ofen_data"))
     update_Losses(os.path.join(path_dir, "SFOE_data.csv"))
     if is_verbose: print(f"Updated Losses file")
@@ -109,6 +112,15 @@ def update_neighbours(path):
 
 def update_UIVector(path):
     update_copy(path, "Unit_Impact_Vector.csv")
+
+
+def update_UVEKVector(path, is_verbose):
+    mapping_path = os.path.join(path, "Mapping_UVEK.csv")
+    UI_vector_path = os.path.join(path, "Unit_Impact_Vector.csv")
+    UVEK_path = os.path.join(path, "UVEK_LCA.xlsx")
+    vector = impact_mapping_matching(UVEK_path, UI_vector_path, mapping_path, is_verbose=is_verbose)
+    vector.to_csv(os.path.join(path, "UVEK_Unit_Impact_Vector.csv"), index=True)
+    update_copy(os.path.join(path, "UVEK_Unit_Impact_Vector.csv"), "UVEK_Unit_Impact_Vector.csv")
 
 
 def update_SFOE(path):
@@ -161,7 +173,7 @@ def extract_entsoe_daily_generation_for_residuals(config, path_dir=None, n_hours
     corresponds to the days in the 'Redisual_model.xlsx' file. The data is saved in a file named
     'daily_entsoe_data_for_residual.csv' in path_dir.
 
-    **Note that the required entsoe data isn't downloaded automatically. See downloading.py for more information.**
+   **Note that the required entsoe data isn't downloaded automatically. See downloading.py for more information.**
 
     Parameters
     ----------
@@ -250,7 +262,7 @@ def extract_ofen_typical_days_for_residual(year, post_process_fun, path_dir=None
     corresponds to the days in the 'Redisual_model.xlsx' file. The data is saved in a file named
     'ofen_data/daily_ofen_data_for_residual_year.csv' in path_dir.
 
-    **The input data is the annual report of the OFEN, in a pdf that should be named 'year.pdf' and in the directory path_dir'/ofen_data'.**
+   **The input data is the annual report of the OFEN, in a pdf that should be named 'year.pdf' and in the directory path_dir'/ofen_data'.**
 
     Parameters
     ----------
@@ -438,14 +450,14 @@ def update_enr_data_from_pronovo(path_dir=None, output_file=None, verbose=False)
         :ref:`ecodynelec.preprocessing.enr_residual_utils <pronovo-and-energycharts-data-downloading>` module.
 
     | The source files should be placed in the `path_dir` directory :
-    
+
     - a 'pronovo_data' sub-directory should contain the files from Pronovo ('prod_year' directories containing the .csv
       files downloaded on the Pronovo's website, AND a 'EC_Solar_year.csv' EnergyCharts solar production file to scale the
       hourly Pronovo data to the real daily production given by EnergyCharts
       (see :ref:`ecodynelec.preprocessing.enr_residual_utils <pronovo-and-energycharts-data-downloading>` module documentation)
     - a 'energy_charts_data' sub-directory should contain the files from Energy Charts
     - a 'enr_prod_2016-2019.csv' file should be in the `path_dir` directory
-    
+
     | This file is generated using the Ecd-EnrModel project. It contains predicted solar and wind electricity production
         from 2016 to 2019.
 
@@ -488,3 +500,124 @@ def update_enr_data_from_pronovo(path_dir=None, output_file=None, verbose=False)
     if verbose:
         print(f"Saving {output_file}...")
     ndf.to_csv(output_file)
+
+
+
+def extract_uvek_impact(ctry, vector_path, is_verbose=False) -> DataFrame:
+    """
+    Extracts the impact data from the provided file and processes the data to filter and rename specified
+    impact categories.
+
+    The function reads the input file, identifies and processes specific categories of impact-related data,
+    performs renaming, and adjusts the resultant dataset accordingly. It returns a cleaned matrix containing
+    the processed data.
+
+    Parameters
+    ----------
+    ctry : list, tuple, or str
+        The country or list of countries for which the data extraction is performed.
+
+    vector_path : str
+        Path to the input CSV file containing the impact data.
+
+    is_verbose : bool, optional
+        If True, the function prints progress or debug messages. Default is False.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The cleaned matrix containing filtered and renamed impact categories and their corresponding data.
+
+    Raises
+    ------
+    TypeError
+        If `ctry` is not of type `list`, `tuple`, or `str`.
+
+    ValueError
+        If the header "Catégorie d'impact" is not found in the input file.
+    """
+
+    ### Check the country list
+    if is_verbose: print("Extraction of UVEK impact")
+    # Test the type of country
+    if type(ctry) != list:
+        raise TypeError("Parameter ctry should be a list, tuple or str")
+
+    df_temp = pd.read_excel(vector_path, header=None)
+    header_idx = df_temp.index[df_temp.iloc[:, 0] == "Catégorie d'impact"].tolist()
+
+    if not header_idx:
+        raise ValueError("Header 'Catégorie d'impact' not found in file.")
+
+    matrix = pd.read_excel(vector_path, header=header_idx[0])
+    row_to_keep = ["Climate change - Fossil", "Land use", "Particulate matter", "Human toxicity, cancer"]
+    matrix = matrix.rename(columns={"Catégorie d'impact": 'Category'})
+    matrix = matrix[matrix['Category'].isin(row_to_keep)]
+
+    if len(matrix.columns) > 1:
+        matrix = matrix.drop(matrix.columns[1], axis=1)
+    matrix = matrix.set_index('Category')
+
+    row_mapping = {
+        "Climate change - Fossil": "Carbon intensity",
+        "Land use": "Land use",
+        "Particulate matter": "Fine particulate matter formation",
+        "Human toxicity, cancer": "Human carcinogenic toxicity"
+    }
+    matrix = matrix.rename(index=row_mapping).T
+    re_order = ["Carbon intensity", "Human carcinogenic toxicity", "Fine particulate matter formation","Land use" ]
+    matrix = matrix[re_order]
+    matrix_clean = matrix[~matrix.index.duplicated(keep='first')]
+
+    return matrix_clean
+
+def impact_mapping_matching(uvek_path, ui_vector_path, mapping_path, is_verbose=False):
+    """
+    Matches technologies with their environmental impact values by mapping data from
+    various sources (UVEK, UI impact vector, and mapping details). Generates a new
+    dataframe aligning UI technologies to their corresponding impact values.
+
+    Parameters
+    ----------
+    uvek_path : str
+        File path to the UVEK impact data file.
+    ui_vector_path : str
+        File path to the UI impact vector data file.
+    mapping_path : str
+        File path to the mapping file linking EcoInvent and UVEK.
+    is_verbose : bool, optional
+        Flag to enable verbose output during the process, default is False.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A new impact vector with combined environmental data for technologies from
+        the UI impact vector and the mapping to UVEK impact data.
+    """
+
+    # Loading UVEK impact data
+    ctry = ['CH','AT','DE','FR','CZ','IT']
+    uvek_impact = extract_uvek_impact(ctry, vector_path=uvek_path, is_verbose=is_verbose)
+
+    # Loading Mapping data for EcoInvent and UVEK
+    mapping = pd.read_csv(mapping_path, sep=';', encoding='latin-1')
+    mapping['Pourcentage'] = mapping['Pourcentage'].astype(str).str.replace(',', '.', regex=False)
+    mapping['Pourcentage'] = pd.to_numeric(mapping['Pourcentage'], errors='coerce')
+
+    # Loading UI impact vector
+    ui_impact = pd.read_csv(ui_vector_path)
+
+    new_impact_vector = pd.DataFrame(columns=uvek_impact.columns)
+    for techno in ui_impact.iloc[:, 0]:
+        techno_map = mapping[mapping['EcoDynElec'] == techno]
+        if not techno_map.empty:
+            new_impact_vector.loc[techno] = [0,0,0,0]
+            for index, row in techno_map.iterrows():
+                if pd.isna(row['UVEK']): pass
+                else:
+                    new_impact_vector.loc[techno] += row['Pourcentage']*uvek_impact.loc[row['UVEK']]
+        else:
+            if is_verbose:
+                print(f"No mapping found for : {techno}")
+    return new_impact_vector
+

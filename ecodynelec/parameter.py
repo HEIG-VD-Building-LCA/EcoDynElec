@@ -107,6 +107,8 @@ class Parameter():
         self.ch_enr_model_path = None
         self.storage_path = None
 
+        self.uvek_data = False
+
         if excel is not None: # Initialize with an excel file
             self.from_excel(excel)
 
@@ -115,7 +117,7 @@ class Parameter():
     def __repr__(self):
         text = {}
         attributes = ["ctry","target","start","end","freq","timezone","cst_imports","net_exchanges",
-                      "network_losses","sg_imports", "residual_local", "residual_global", 'data_cleaning']
+                      "network_losses","sg_imports", "residual_local", "residual_global", 'data_cleaning', 'uvek_data']
         for a in attributes:
             text[a] = getattr(self, a)
 
@@ -124,7 +126,7 @@ class Parameter():
 
     def __setattr__(self, name, value):
         _booleans = ["cst_imports","sg_imports","net_exchanges","network_losses",
-                    "residual_global","data_cleaning"] # Define boolean variables
+                    "residual_global","data_cleaning", "uvek_data"] # Define boolean variables
 
         if np.logical_and(self._is_frozen, not hasattr(self, name)):
             raise AttributeError(f"'parameter' object has no attribute '{name}'")
@@ -266,6 +268,8 @@ class Filepath():
         self.savedir = None
 
         self.ui_vector = None
+        self.ui_network = None
+        self.uvek_ui_vector = None
         self.mapping = None
         self.neighbours = None
         self.gap = None
@@ -280,7 +284,7 @@ class Filepath():
     def __repr__(self):
         attributes = ["generation","exchanges","savedir",
                       "ui_vector","mapping","neighbours","gap","swissGrid",
-                      "networkLosses"]
+                      "networkLosses", "ui_network", "uvek_ui_vector"]
         text = ""
         for a in attributes:
             text += f"Filepath to {a} --> {getattr(self, a)}\n"

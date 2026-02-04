@@ -14,7 +14,7 @@ flow information.
 import pandas as pd
 import os
 
-def dynamic_impact(prod_imp : dict, mix_imp : dict, flows : pd.DataFrame, prod_mix : dict, mix_dict : dict, impact_matrix : pd.DataFrame, step_imp_memory : dict, parameter, is_verbose=False) -> (dict,dict):
+def dynamic_impact(prod_imp : dict, mix_imp : dict, flows : pd.DataFrame, prod_mix : dict, mix_dict : dict, impact_matrix : pd.DataFrame, network_impact : dict,  step_imp_memory : dict, parameter, is_verbose=False) -> (dict,dict):
     """
     Computes the dynamic environmental impacts of storage for given production and mix data
     within a time series. Adjusts the impact values dynamically based on storage factors
@@ -106,8 +106,8 @@ def dynamic_impact(prod_imp : dict, mix_imp : dict, flows : pd.DataFrame, prod_m
             for country in prod_imp.keys():
                 # Add STEP impact to 'Carbon intensity', 'Human carcinogeric toxicity' ...
                 if country == 'CH':
-                    prod_imp[country][k]['Hydro_Pumped_Storage_CH'] = step_imp[k]*prod_mix[country]['Hydro_Pumped_Storage_CH'] # prod_imp is a dictionary concerning only the production technology of the country in question
-                mix_imp[country][k]['Hydro_Pumped_Storage_CH'] = step_imp[k]*mix_dict[country]['Hydro_Pumped_Storage_CH']
+                    prod_imp[country][k]['Hydro_Pumped_Storage_CH'] = prod_mix[country]['Hydro_Pumped_Storage_CH']*step_imp[k] + prod_mix[country]['Hydro_Pumped_Storage_CH']*network_impact['CH']['Infra PHS'][k] # prod_imp is a dictionary concerning only the production technology of the country in question
+                mix_imp[country][k]['Hydro_Pumped_Storage_CH'] = mix_dict[country]['Hydro_Pumped_Storage_CH']*step_imp[k] + mix_dict[country]['Hydro_Pumped_Storage_CH']*network_impact['CH']['Infra PHS'][k]
 
                 # Recalculate 'Global' impact with STEP impact added
                 prod_imp[country]['Global'][k] = prod_imp[country][k].sum(axis=1)
@@ -268,7 +268,7 @@ def load_concat_files(folder_path, is_verbose=False):
     # Configuration for each dataset type
     dataset_config = {
         'storage': {
-            'prefix': 'energy-charts',
+            'prefix': 'Storage',
             'skiprows': [1],
             'date_col': 'Date (TC+1)',
             'rename_cols': ['Valais', 'Grisons', 'Tessin', 'Reste de la Suisse', 'storage max'],
